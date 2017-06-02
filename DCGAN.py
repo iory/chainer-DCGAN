@@ -203,7 +203,6 @@ for epoch in xrange(epoch0, n_epoch):
 
                 # img = np.asarray(Image.open(StringIO(dataset[rnd])).convert('RGB')).astype(np.float32).transpose(2, 0, 1)
                 img = dataset[rnd].astype(np.float32).transpose(2, 0, 1)
-                print(img.shape)
             except:
                 print 'read image error occured'
         #print "load image done"
