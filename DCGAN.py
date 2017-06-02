@@ -208,7 +208,7 @@ for epoch in xrange(epoch0, n_epoch):
                 else:
                     x2[j,:,:,:] = (img[:,:,:]-128.0)/128.0
             except:
-                print 'read image error occured', fs[rnd]
+                print 'read image error occured'
         #print "load image done"
 
         # train generator
