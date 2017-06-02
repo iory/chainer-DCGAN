@@ -220,7 +220,7 @@ for epoch in xrange(epoch0, n_epoch):
 
         x2 = Variable(cuda.to_gpu(x2))
         yl2 = dis(x2)
-        L_dis += F.softmax_cross_entropy(yl2, Variable(np.zeros(batchsize, dtype=np.int32)))
+        L_dis += F.softmax_cross_entropy(yl2, Variable(chainer.cuda.to_gpu(np.zeros(batchsize, dtype=np.int32))))
 
         #print "forward done"
 
@@ -243,7 +243,7 @@ for epoch in xrange(epoch0, n_epoch):
             vissize = 100
             z = zvis
             z[50:,:] = np.random.uniform(-1, 1, (50, nz)).astype(np.float32)
-            z = Variable(z)
+            z = Variable(chainer.cuda.to_gpu(z))
             x = gen(z, test=True)
             x = x.data.get()
             for i_ in range(100):
