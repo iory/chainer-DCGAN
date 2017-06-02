@@ -213,8 +213,8 @@ for epoch in xrange(epoch0, n_epoch):
 
         x = gen(z)
         yl = dis(x)
-        L_gen = F.softmax_cross_entropy(yl, Variable(np.zeros(batchsize, dtype=np.int32)))
-        L_dis = F.softmax_cross_entropy(yl, Variable(np.ones(batchsize, dtype=np.int32)))
+        L_gen = F.softmax_cross_entropy(yl, Variable(chainer.cuda.to_gpu(np.zeros(batchsize, dtype=np.int32))))
+        L_dis = F.softmax_cross_entropy(yl, Variable(chainer.cuda.to_gpu(np.ones(batchsize, dtype=np.int32))))
 
         # train discriminator
 
