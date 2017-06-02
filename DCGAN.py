@@ -159,95 +159,6 @@ def clip_img(x):
 	return np.float32(-1 if x<-1 else (1 if x>1 else x))
 
 
-def train_dcgan_labeled(gen, dis, epoch0=0):
-    o_gen = optimizers.Adam(alpha=0.0002, beta1=0.5)
-    o_dis = optimizers.Adam(alpha=0.0002, beta1=0.5)
-    o_gen.setup(gen)
-    o_dis.setup(dis)
-    o_gen.add_hook(chainer.optimizer.WeightDecay(0.00001))
-    o_dis.add_hook(chainer.optimizer.WeightDecay(0.00001))
-
-    zvis = (xp.random.uniform(-1, 1, (100, nz), dtype=np.float32))
-
-    for epoch in xrange(epoch0,n_epoch):
-        perm = np.random.permutation(n_train)
-        sum_l_dis = np.float32(0)
-        sum_l_gen = np.float32(0)
-
-        for i in xrange(0, n_train, batchsize):
-            # discriminator
-            # 0: from dataset
-            # 1: from noise
-
-            #print "load image start ", i
-            x2 = np.zeros((batchsize, 3, 96, 96), dtype=np.float32)
-            for j in range(batchsize):
-                try:
-                    rnd = np.random.randint(len(dataset))
-                    rnd2 = np.random.randint(2)
-
-                    # img = np.asarray(Image.open(StringIO(dataset[rnd])).convert('RGB')).astype(np.float32).transpose(2, 0, 1)
-                    img = dataset[rnd].astype(np.float32).transpose(2, 0, 1)
-                    if rnd2==0:
-                        x2[j,:,:,:] = (img[:,:,::-1]-128.0)/128.0
-                    else:
-                        x2[j,:,:,:] = (img[:,:,:]-128.0)/128.0
-                except:
-                    print 'read image error occured', fs[rnd]
-            #print "load image done"
-
-            # train generator
-            z = Variable(xp.random.uniform(-1, 1, (batchsize, nz), dtype=np.float32))
-            x = gen(z)
-            yl = dis(x)
-            L_gen = F.softmax_cross_entropy(yl, Variable(xp.zeros(batchsize, dtype=np.int32)))
-            L_dis = F.softmax_cross_entropy(yl, Variable(xp.ones(batchsize, dtype=np.int32)))
-
-            # train discriminator
-
-            x2 = Variable(cuda.to_gpu(x2))
-            yl2 = dis(x2)
-            L_dis += F.softmax_cross_entropy(yl2, Variable(xp.zeros(batchsize, dtype=np.int32)))
-
-            #print "forward done"
-
-            o_gen.zero_grads()
-            L_gen.backward()
-            o_gen.update()
-
-            o_dis.zero_grads()
-            L_dis.backward()
-            o_dis.update()
-
-            sum_l_gen += L_gen.data.get()
-            sum_l_dis += L_dis.data.get()
-
-            #print "backward done"
-
-            if i%image_save_interval==0:
-                pylab.rcParams['figure.figsize'] = (16.0,16.0)
-                pylab.clf()
-                vissize = 100
-                z = zvis
-                z[50:,:] = (xp.random.uniform(-1, 1, (50, nz), dtype=np.float32))
-                z = Variable(z)
-                x = gen(z, test=True)
-                x = x.data.get()
-                for i_ in range(100):
-                    tmp = ((np.vectorize(clip_img)(x[i_,:,:,:])+1)/2).transpose(1,2,0)
-                    pylab.subplot(10,10,i_+1)
-                    pylab.imshow(tmp)
-                    pylab.axis('off')
-                pylab.savefig('%s/vis_%d_%d.png'%(out_image_dir, epoch,i))
-
-        serializers.save_hdf5("%s/dcgan_model_dis_%d.h5"%(out_model_dir, epoch),dis)
-        serializers.save_hdf5("%s/dcgan_model_gen_%d.h5"%(out_model_dir, epoch),gen)
-        serializers.save_hdf5("%s/dcgan_state_dis_%d.h5"%(out_model_dir, epoch),o_dis)
-        serializers.save_hdf5("%s/dcgan_state_gen_%d.h5"%(out_model_dir, epoch),o_gen)
-        print 'epoch end', epoch, sum_l_gen/n_train, sum_l_dis/n_train
-
-
-
 xp = cuda.cupy
 cuda.get_device(0).use()
 
@@ -263,4 +174,89 @@ try:
 except:
     pass
 
-train_dcgan_labeled(gen, dis)
+o_gen = optimizers.Adam(alpha=0.0002, beta1=0.5)
+o_dis = optimizers.Adam(alpha=0.0002, beta1=0.5)
+o_gen.setup(gen)
+o_dis.setup(dis)
+o_gen.add_hook(chainer.optimizer.WeightDecay(0.00001))
+o_dis.add_hook(chainer.optimizer.WeightDecay(0.00001))
+
+zvis = (xp.random.uniform(-1, 1, (100, nz), dtype=np.float32))
+
+epoch0 = 0
+for epoch in xrange(epoch0, n_epoch):
+    perm = np.random.permutation(n_train)
+    sum_l_dis = np.float32(0)
+    sum_l_gen = np.float32(0)
+
+    for i in xrange(0, n_train, batchsize):
+        # discriminator
+        # 0: from dataset
+        # 1: from noise
+
+        #print "load image start ", i
+        x2 = np.zeros((batchsize, 3, 96, 96), dtype=np.float32)
+        for j in range(batchsize):
+            try:
+                rnd = np.random.randint(len(dataset))
+                rnd2 = np.random.randint(2)
+
+                # img = np.asarray(Image.open(StringIO(dataset[rnd])).convert('RGB')).astype(np.float32).transpose(2, 0, 1)
+                img = dataset[rnd].astype(np.float32).transpose(2, 0, 1)
+                if rnd2==0:
+                    x2[j,:,:,:] = (img[:,:,::-1]-128.0)/128.0
+                else:
+                    x2[j,:,:,:] = (img[:,:,:]-128.0)/128.0
+            except:
+                print 'read image error occured', fs[rnd]
+        #print "load image done"
+
+        # train generator
+        z = Variable(xp.random.uniform(-1, 1, (batchsize, nz), dtype=np.float32))
+        x = gen(z)
+        yl = dis(x)
+        L_gen = F.softmax_cross_entropy(yl, Variable(xp.zeros(batchsize, dtype=np.int32)))
+        L_dis = F.softmax_cross_entropy(yl, Variable(xp.ones(batchsize, dtype=np.int32)))
+
+        # train discriminator
+
+        x2 = Variable(cuda.to_gpu(x2))
+        yl2 = dis(x2)
+        L_dis += F.softmax_cross_entropy(yl2, Variable(xp.zeros(batchsize, dtype=np.int32)))
+
+        #print "forward done"
+
+        o_gen.zero_grads()
+        L_gen.backward()
+        o_gen.update()
+
+        o_dis.zero_grads()
+        L_dis.backward()
+        o_dis.update()
+
+        sum_l_gen += L_gen.data.get()
+        sum_l_dis += L_dis.data.get()
+
+        #print "backward done"
+
+        if i%image_save_interval==0:
+            pylab.rcParams['figure.figsize'] = (16.0,16.0)
+            pylab.clf()
+            vissize = 100
+            z = zvis
+            z[50:,:] = (xp.random.uniform(-1, 1, (50, nz), dtype=np.float32))
+            z = Variable(z)
+            x = gen(z, test=True)
+            x = x.data.get()
+            for i_ in range(100):
+                tmp = ((np.vectorize(clip_img)(x[i_,:,:,:])+1)/2).transpose(1,2,0)
+                pylab.subplot(10,10,i_+1)
+                pylab.imshow(tmp)
+                pylab.axis('off')
+            pylab.savefig('%s/vis_%d_%d.png'%(out_image_dir, epoch,i))
+
+    serializers.save_hdf5("%s/dcgan_model_dis_%d.h5"%(out_model_dir, epoch),dis)
+    serializers.save_hdf5("%s/dcgan_model_gen_%d.h5"%(out_model_dir, epoch),gen)
+    serializers.save_hdf5("%s/dcgan_state_dis_%d.h5"%(out_model_dir, epoch),o_dis)
+    serializers.save_hdf5("%s/dcgan_state_gen_%d.h5"%(out_model_dir, epoch),o_gen)
+    print 'epoch end', epoch, sum_l_gen/n_train, sum_l_dis/n_train
