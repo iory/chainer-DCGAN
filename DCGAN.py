@@ -181,7 +181,7 @@ o_dis.setup(dis)
 o_gen.add_hook(chainer.optimizer.WeightDecay(0.00001))
 o_dis.add_hook(chainer.optimizer.WeightDecay(0.00001))
 
-zvis = (np.random.uniform(-1, 1, (100, nz), dtype=np.float32))
+zvis = (np.random.uniform(-1, 1, (100, nz))).astype(np.float32)
 
 epoch0 = 0
 for epoch in xrange(epoch0, n_epoch):
@@ -212,7 +212,7 @@ for epoch in xrange(epoch0, n_epoch):
         #print "load image done"
 
         # train generator
-        z = Variable(np.random.uniform(-1, 1, (batchsize, nz), dtype=np.float32))
+        z = Variable(np.random.uniform(-1, 1, (batchsize, nz)).astype(np.float32))
         x = gen(z)
         yl = dis(x)
         L_gen = F.softmax_cross_entropy(yl, Variable(np.zeros(batchsize, dtype=np.int32)))
@@ -244,7 +244,7 @@ for epoch in xrange(epoch0, n_epoch):
             pylab.clf()
             vissize = 100
             z = zvis
-            z[50:,:] = (np.random.uniform(-1, 1, (50, nz), dtype=np.float32))
+            z[50:,:] = np.random.uniform(-1, 1, (50, nz)).astype(np.float32)
             z = Variable(z)
             x = gen(z, test=True)
             x = x.data.get()
