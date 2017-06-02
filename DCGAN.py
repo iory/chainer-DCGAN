@@ -203,16 +203,14 @@ for epoch in xrange(epoch0, n_epoch):
 
                 # img = np.asarray(Image.open(StringIO(dataset[rnd])).convert('RGB')).astype(np.float32).transpose(2, 0, 1)
                 img = dataset[rnd].astype(np.float32).transpose(2, 0, 1)
-                if rnd2==0:
-                    x2[j,:,:,:] = (img[:,:,::-1]-128.0)/128.0
-                else:
-                    x2[j,:,:,:] = (img[:,:,:]-128.0)/128.0
+                print(img.shape)
             except:
                 print 'read image error occured'
         #print "load image done"
 
         # train generator
-        z = Variable(np.random.uniform(-1, 1, (batchsize, nz)).astype(np.float32))
+        z = Variable(chainer.cuda.to_gpu(np.random.uniform(-1, 1, (batchsize, nz)).astype(np.float32)))
+
         x = gen(z)
         yl = dis(x)
         L_gen = F.softmax_cross_entropy(yl, Variable(np.zeros(batchsize, dtype=np.int32)))
